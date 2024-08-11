@@ -12,12 +12,16 @@ class ScheduleBottomSheet extends StatefulWidget {
 class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
   @override
   Widget build(BuildContext context) {
+    // 키보드 높이 가져오기
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return SafeArea(
         child: Container(
-            height: MediaQuery.of(context).size.height / 2,
+            height: MediaQuery.of(context).size.height / 2 + bottomInset,
             color: Colors.white,
             child: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
+              padding: EdgeInsets.only(
+                  left: 8, right: 8, top: 8, bottom: bottomInset),
               child: Column(children: [
                 Row(children: [
                   Expanded(
@@ -32,7 +36,9 @@ class _ScheduleBottomSheetState extends State<ScheduleBottomSheet> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: onSavePressed,
-                    style: ElevatedButton.styleFrom(backgroundColor: PRIMARY_COLOR, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: PRIMARY_COLOR,
+                        foregroundColor: Colors.white),
                     child: Text('저장'),
                   ),
                 )
