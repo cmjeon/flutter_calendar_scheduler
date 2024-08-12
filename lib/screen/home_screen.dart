@@ -16,7 +16,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime selectedDate = DateTime.utc(
-      DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      DateTime
+          .now()
+          .year, DateTime
+      .now()
+      .month, DateTime
+      .now()
+      .day);
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
             showModalBottomSheet(
                 context: context,
                 isDismissible: true,
-                builder: (_) => ScheduleBottomSheet(
+                builder: (_) =>
+                    ScheduleBottomSheet(
                       selectedDate: selectedDate,
                     ),
                 // BottomSheet 의 높이를 화면의 최대 높이로 경의하고 스크롤 가능하게 변경
@@ -37,45 +44,52 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: SafeArea(
             child: Column(children: [
-          MainCalendar(
-            selectedDate: selectedDate,
-            onDaySelected: onDaySelected,
-          ),
-          SizedBox(height: 8.0),
-          TodayBanner(selectedDate: selectedDate, count: 0),
-          SizedBox(height: 8.0),
-          Expanded(
-            child: StreamBuilder<List<Schedule>>(
-              stream: GetIt.I<LocalDatabase>().watchSchedules(selectedDate),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Container();
-                }
-                return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final schedule = snapshot.data![index];
-                      return Dismissible(
-                        key: ObjectKey(schedule.id),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (DismissDirection direction) {
-                          GetIt.I<LocalDatabase>().removeSchedule(schedule.id);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: 8.0, left: 8.0, right: 8.0),
-                          child: ScheduleCard(
-                            startTime: schedule.startTime,
-                            endTime: schedule.endTime,
-                            content: schedule.content,
-                          ),
-                        ),
-                      );
-                    });
-              },
-            ),
-          ),
-        ])));
+              MainCalendar(
+                selectedDate: selectedDate,
+                onDaySelected: onDaySelected,
+              ),
+              SizedBox(height: 8.0),
+              StreamBuilder<List<Schedule>>(
+                  stream: GetIt.I<LocalDatabase>().watchSchedules(selectedDate),
+                  builder: (context, snapshot) {
+                    return TodayBanner(selectedDate: selectedDate,
+                        count: snapshot.data?.length ?? 0);
+                  }
+              ),
+              SizedBox(height: 8.0),
+              Expanded(
+                child: StreamBuilder<List<Schedule>>(
+                  stream: GetIt.I<LocalDatabase>().watchSchedules(selectedDate),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container();
+                    }
+                    return ListView.builder(
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final schedule = snapshot.data![index];
+                          return Dismissible(
+                            key: ObjectKey(schedule.id),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (DismissDirection direction) {
+                              GetIt.I<LocalDatabase>().removeSchedule(
+                                  schedule.id);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: 8.0, left: 8.0, right: 8.0),
+                              child: ScheduleCard(
+                                startTime: schedule.startTime,
+                                endTime: schedule.endTime,
+                                content: schedule.content,
+                              ),
+                            ),
+                          );
+                        });
+                  },
+                ),
+              ),
+            ])));
   }
 
   void onDaySelected(DateTime selectedDate, DateTime focusedDate) {
