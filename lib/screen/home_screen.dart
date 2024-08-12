@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
             showModalBottomSheet(
                 context: context,
                 isDismissible: true,
-                builder: (_) => ScheduleBottomSheet(),
+                builder: (_) => ScheduleBottomSheet(selectedDate: selectedDate,),
                 // BottomSheet 의 높이를 화면의 최대 높이로 경의하고 스크롤 가능하게 변경
                 isScrollControlled: true);
           },
