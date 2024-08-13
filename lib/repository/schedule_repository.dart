@@ -31,7 +31,7 @@ class ScheduleRepository {
   }
 
   // 등록
-  Future<void> createSchedule({
+  Future<String> createSchedule({
     required ScheduleModel schedule,
   }) async {
     final json = schedule.toJson();
@@ -43,7 +43,7 @@ class ScheduleRepository {
   }
 
   // 삭제
-  Future<void> deleteSchedule({
+  Future<String> deleteSchedule({
     required String id,
   }) async {
     final resp = await _dio.delete(_targetUrl, data: {'id': id});
