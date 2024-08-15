@@ -36,7 +36,7 @@ void main() async {
     // ),
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+      home: AuthScreen(),
     )
   );
 }
