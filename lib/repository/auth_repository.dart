@@ -46,4 +46,28 @@ class AuthRepository {
       accessToken: result.data['accessToken'] as String
     );
   }
+
+  // 리프레시 토큰 재발급
+  Future<String> rotateRefreshToken({required String refreshToken}) async {
+    final result = await _dio.post('$_targetUrl/token/refresh',
+        options: Options(
+          headers: {
+            'authorization': 'Bearer $refreshToken',
+          },
+        ));
+
+    return result.data['refreshToken'] as String;
+  }
+
+  // 엑세스 토큰 재발급
+  Future<String> rotateAccessToken({required String refreshToken}) async {
+    final result = await _dio.post('$_targetUrl/token/access',
+        options: Options(
+          headers: {
+            'authorization': 'Bearer $refreshToken',
+          },
+        ));
+
+    return result.data['accessToken'] as String;
+  }
 }
