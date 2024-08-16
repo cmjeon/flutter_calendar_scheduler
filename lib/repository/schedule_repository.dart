@@ -7,10 +7,10 @@ import 'package:flutter_calendar_scheduler/model/schedule_model.dart';
 class ScheduleRepository {
   final _dio = Dio();
   final _targetUrl =
-      'http://${Platform.isAndroid ? '10.0.2.2' : 'localhost'}:3000/schedule'; // 안드로이드에서는 10.0.2.2 가 localhost
+      'http://${Platform.isAndroid ? '10.0.2.2' : 'localhost'}:3000/schedule';
 
-  // 조회
   Future<List<ScheduleModel>> getSchedules({
+    required String accessToken,
     required DateTime date,
   }) async {
     final resp = await _dio.get(
@@ -19,6 +19,11 @@ class ScheduleRepository {
         'date':
             '${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}',
       },
+      options: Options(
+        headers: {
+          'authorization': 'Bearer $accessToken',
+        },
+      ),
     );
 
     return resp.data
@@ -30,23 +35,41 @@ class ScheduleRepository {
         .toList();
   }
 
-  // 등록
   Future<String> createSchedule({
+    required String accessToken,
     required ScheduleModel schedule,
   }) async {
     final json = schedule.toJson();
+
     final resp = await _dio.post(
       _targetUrl,
       data: json,
+      options: Options(
+        headers: {
+          'authorization': 'Bearer $accessToken',
+        },
+      ),
     );
+
     return resp.data?['id'];
   }
 
-  // 삭제
   Future<String> deleteSchedule({
+    required String accessToken,
     required String id,
   }) async {
-    final resp = await _dio.delete(_targetUrl, data: {'id': id});
+    final resp = await _dio.delete(
+      _targetUrl,
+      data: {
+        'id': id,
+      },
+      options: Options(
+        headers: {
+          'authorization': 'Bearer $accessToken',
+        },
+      ),
+    );
+
     return resp.data?['id'];
   }
 }

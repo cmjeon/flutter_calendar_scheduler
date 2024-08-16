@@ -5,8 +5,8 @@ import 'package:flutter_calendar_scheduler/repository/schedule_repository.dart';
 import 'package:uuid/uuid.dart';
 
 class ScheduleProvider extends ChangeNotifier {
-  final AuthRepository authRepository;
   final ScheduleRepository scheduleRepository;
+  final AuthRepository authRepository;
 
   String? accessToken;
   String? refreshToken;
@@ -18,27 +18,109 @@ class ScheduleProvider extends ChangeNotifier {
   );
   Map<DateTime, List<ScheduleModel>> cache = {};
 
-  ScheduleProvider(
-      {required this.authRepository, required this.scheduleRepository})
-      : super() {
-    getSchedules(date: selectedDate);
-  }
+  ScheduleProvider({
+    required this.scheduleRepository,
+    required this.authRepository,
+  }) : super() {}
 
-  // 조회
-  void getSchedules({required DateTime date}) async {
-    final resp = await scheduleRepository.getSchedules(date: date);
-    // 일정 업데이트
-    cache.update(date, (value) => resp, ifAbsent: () => resp);
-    // 리슨하는 위젯들 업데이트
+  updateTokens({
+    String? refreshToken,
+    String? accessToken,
+  }) {
+    if (refreshToken != null) {
+      this.refreshToken = refreshToken;
+    }
+
+    if (accessToken != null) {
+      this.accessToken = accessToken;
+    }
+
     notifyListeners();
   }
 
-  // 생성
-  void createSchedule({required ScheduleModel schedule}) async {
+  Future<void> login({
+    required String email,
+    required String password,
+  }) async {
+    final resp = await authRepository.login(
+      email: email,
+      password: password,
+    );
+    print('resp.refreshToken' + resp.refreshToken);
+    print('resp.accessToken' + resp.accessToken);
+
+    updateTokens(
+      refreshToken: resp.refreshToken,
+      accessToken: resp.accessToken,
+    );
+  }
+
+  logout() {
+    accessToken = null;
+    refreshToken = null;
+    cache = {};
+    notifyListeners();
+  }
+
+  Future<void> register({
+    required String email,
+    required String password,
+  }) async {
+    final resp = await authRepository.register(
+      email: email,
+      password: password,
+    );
+
+    updateTokens(
+      refreshToken: resp.refreshToken,
+      accessToken: resp.accessToken,
+    );
+  }
+
+  rotateToken({
+    required String refreshToken,
+    required bool isRefreshToken,
+  }) async {
+    if (isRefreshToken) {
+      final token =
+          await authRepository.rotateRefreshToken(refreshToken: refreshToken);
+
+      this.refreshToken = token;
+    } else {
+      final token =
+          await authRepository.rotateAccessToken(refreshToken: refreshToken);
+
+      accessToken = token;
+    }
+
+    notifyListeners();
+  }
+
+  void getSchedules({
+    required DateTime date,
+  }) async {
+    final resp = await scheduleRepository.getSchedules(
+      date: date,
+      accessToken: accessToken!,
+    );
+
+    print(resp);
+
+    cache.update(date, (value) => resp, ifAbsent: () => resp);
+
+    notifyListeners();
+  }
+
+  void createSchedule({
+    required ScheduleModel schedule,
+  }) async {
     final targetDate = schedule.date;
     final uuid = Uuid();
+
     final tempId = uuid.v4();
-    final newSchedule = schedule.copyWith(id: tempId);
+    final newSchedule = schedule.copyWith(
+      id: tempId,
+    );
     // 긍정적 응답 캐시 업데이트
     cache.update(
       targetDate,
@@ -52,11 +134,14 @@ class ScheduleProvider extends ChangeNotifier {
         ),
       ifAbsent: () => [newSchedule],
     );
+
     notifyListeners();
 
     try {
-      final savedSchedule =
-          await scheduleRepository.createSchedule(schedule: schedule);
+      final savedSchedule = await scheduleRepository.createSchedule(
+        schedule: schedule,
+        accessToken: accessToken!,
+      );
       // 응답기반 캐시 업데이트
       cache.update(
         targetDate,
@@ -69,22 +154,23 @@ class ScheduleProvider extends ChangeNotifier {
             .toList(),
       );
     } catch (e) {
-      // 실패 시 캐시 롤백
       cache.update(
         targetDate,
         (value) => value.where((e) => e.id != tempId).toList(),
       );
     }
+
     notifyListeners();
   }
 
   // 삭제
-  void deleteSchedules({
+  void deleteSchedule({
     required DateTime date,
     required String id,
   }) async {
-    final targetSchedule =
-        cache[date]!.firstWhere((e) => e.id == id); // 삭제할 일정 기억
+    final targetSchedule = cache[date]!.firstWhere(
+      (e) => e.id == id,
+    );
 
     cache.update(
       date,
@@ -92,12 +178,14 @@ class ScheduleProvider extends ChangeNotifier {
       ifAbsent: () => [],
     );
 
-    notifyListeners(); // 캐시 업데이트 반영
+    notifyListeners();
 
     try {
-      await scheduleRepository.deleteSchedule(id: id);
+      await scheduleRepository.deleteSchedule(
+        id: id,
+        accessToken: accessToken!,
+      );
     } catch (e) {
-      // 실패 시 캐시 롤백
       cache.update(
         date,
         (value) => [...value, targetSchedule]..sort(
@@ -107,6 +195,7 @@ class ScheduleProvider extends ChangeNotifier {
           ),
       );
     }
+
     notifyListeners();
   }
 
@@ -115,83 +204,6 @@ class ScheduleProvider extends ChangeNotifier {
     required DateTime date,
   }) {
     selectedDate = date;
-    notifyListeners();
-  }
-
-  // 업데이트 토큰
-  updateToken({
-    String? refreshToken,
-    String? accessToken,
-  }) {
-    if (accessToken != null) {
-      this.accessToken = accessToken;
-    }
-    notifyListeners();
-  }
-
-  // 회원가입
-  Future<void> register({
-    required String email,
-    required String password,
-  }) async {
-    // AuthRepository 에 미리 구현해둔 register() 함수를 실행
-    final resp = await authRepository.register(
-      email: email,
-      password: password,
-    );
-
-    // 반환받은 토큰을 기반으로 토큰 프로퍼티를 업데이트합니다.
-    updateToken(
-      refreshToken: resp.refreshToken,
-      accessToken: resp.accessToken,
-    );
-  }
-
-  // 로그인
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
-    // AuthRepository 에 미리 구현해둔 login() 함수를 실행
-    final resp = await authRepository.login(
-      email: email,
-      password: password,
-    );
-
-    // 반환받은 토큰을 기반으로 토큰 프로퍼티를 업데이트합니다.
-    updateToken(
-      refreshToken: resp.refreshToken,
-      accessToken: resp.accessToken,
-    );
-  }
-
-  // 로그아웃
-  logout() {
-    refreshToken = null;
-    accessToken = null;
-
-    cache = {};
-    notifyListeners();
-  }
-
-  // 토큰 재발급
-  rotateToken({
-    required String refreshToken,
-    required bool isRefreshToken,
-  }) async {
-    if(isRefreshToken) {
-      final token = await authRepository.rotateRefreshToken(
-        refreshToken: refreshToken,
-      );
-
-      this.refreshToken = token;
-    } else {
-      final token = await authRepository.rotateAccessToken(
-        refreshToken: refreshToken,
-      );
-      accessToken = token;
-    }
-
     notifyListeners();
   }
 }
